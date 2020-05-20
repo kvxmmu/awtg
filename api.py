@@ -74,7 +74,7 @@ class Telegram:
     def poll(self, updates_limit=None, timeout=None):
         self.loop.run_until_complete(self._loop(updates_limit, timeout))
 
-    polling = poll  # fuck poll, polling is the only thing we love!
+    polling = poll  # Alias for polling method
 
     def __del__(self):
         if self.close_session:
