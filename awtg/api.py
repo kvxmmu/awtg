@@ -1,5 +1,5 @@
 from rapidjson import loads, dumps
-from .types import (Updates, MessageData,
+from .types import (Updates, User,
                     Message)
 from dataclass_factory import Factory, Schema
 
@@ -27,6 +27,8 @@ class Telegram:
         self.factory = Factory(default_schema=Schema(trim_trailing_underscore=True))
 
         self.message_callback = message_callback
+
+        self.me = None
 
     async def method(self, method_name, params=None):
         if params is None:
@@ -61,6 +63,7 @@ class Telegram:
 
     async def _loop(self, updates_limit, timeout):
         self.running = True
+        self.me = self.factory.load((await self.method("getMe"))['result'], User)
 
         offset = None
 
@@ -73,6 +76,8 @@ class Telegram:
 
     def poll(self, updates_limit=None, timeout=None):
         self.loop.run_until_complete(self._loop(updates_limit, timeout))
+
+    polling = poll  # alias for poll method
 
     def __del__(self):
         if self.close_session:

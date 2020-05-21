@@ -431,10 +431,12 @@ class Message:
         self.tg = telegram
         self.data = data
 
-    def send_message(self, text=None, chat_id=None,
-                     reply=False, reply_message_id=None,
-                     parse_mode="html", disable_web_page_preview=False,
-                     disable_notification=False):
+        self.memory = {}
+
+    def send(self, text=None, chat_id=None,
+             reply=False, reply_message_id=None,
+             parse_mode="html", disable_web_page_preview=False,
+             disable_notification=False):
         return self.tg.loop.create_task(
             self.tg.method("sendMessage", {
                 'text': text or '',
