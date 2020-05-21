@@ -1,4 +1,4 @@
-from awtg.filtering.manager import AsyncHandler
+from awtg.filtering.manager import AsyncHandler, async_decorator
 from awtg.filtering.std import Prefix, Command
 
 
@@ -12,6 +12,12 @@ async def test2(message):
     message.send("Hello world request")
 
 
+@async_decorator(
+    Command("test_decorator"))
+async def async_decorator_test(message):
+    message.send("Async decorator test")
+
+
 exports = (
     test2.add_filter(
         Command("get_hello_world")
@@ -19,6 +25,8 @@ exports = (
 
     test.add_filter(
         Prefix(r"aw\s*")
-    )
+    ),
+
+    async_decorator_test
 )
 

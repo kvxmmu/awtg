@@ -1,6 +1,7 @@
 from inspect import iscoroutine
 from importlib import import_module
-from asyncio import Future
+
+from functools import partial
 
 
 async def check_filter(message, filters):
@@ -85,4 +86,16 @@ class Manager:
 
             handler(message)
 
+
+def create_async_handler(filters, optional, handler):
+    if not filters:
+        filters = ()
+
+    async_handler = AsyncHandler(handler).add_filters(*filters).set_optional(optional)
+
+    return async_handler
+
+
+def async_decorator(*filters, optional=True):
+    return partial(create_async_handler, filters, optional)
 
