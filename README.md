@@ -9,4 +9,4 @@ References:
     1) [Filter example and filter signature](docs/plugin_system/base_plugin.md)
     2) [Manager object](docs/plugin_system/manager.md)
     3) [Standart filters](docs/plugin_system/stdfilters.md)
-3) [Base usage](docs/primitive_usage.md)
+3) [Basic usage](docs/primitive_usage.md)
