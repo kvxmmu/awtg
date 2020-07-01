@@ -39,6 +39,9 @@ AsyncHandler(handler):
 
     add_filters(*filters) -> self:
         extending filters list
+    
+    set_callback(callback_status=True) -> self
+        marking this handler as callback
 
     copy() -> copy of self object:
         returns AsyncHandler object copy
