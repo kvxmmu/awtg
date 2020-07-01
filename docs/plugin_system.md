@@ -2,7 +2,7 @@
 
 When you need fully automated and scalable system(for bot, scalable means that you can easily add/remove commands/actions), plugins system is your choice.
 
-all stuff for plugin system are placed in awtg.filtering package.
+Code for plugin system is in awtg.filtering package.
 
 Example architecture:
 

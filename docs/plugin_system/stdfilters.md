@@ -19,7 +19,7 @@ Split(*pattern, case_sensitive=False,
     error_fill - error field description, used in error generation
     split_by - split user text by given pattern
     generate_error_message - perform error message generation when the number of inconsistencies reaches minimal_error_rate
-    error_send_function - function that will invoked when error message is generated and being send using this function
+    error_send_function - function that sends the error message, is invoked when error message is generated
     strip_words - remove pattern words from message text
     variants_separator - for error generation, separator for joining pattern strings
 
@@ -35,7 +35,7 @@ Prefix(regex, strip=True,
        case_sensitive=False):
     regex - prefix regex
     strip - remove prefix from source text
-    case_sensitive - idk why i should describe this crap
+    case_sensitive - self-explanatory
     
     passes:
         if message text starts with prefix
