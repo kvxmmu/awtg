@@ -1,6 +1,6 @@
 from rapidjson import loads, dumps
 from .types import (Updates, User,
-                    Message)
+                    Message, CallbackQueryHandler)
 from dataclass_factory import Factory, Schema
 
 import asyncio
@@ -26,7 +26,7 @@ class Telegram:
 
         self.factory = Factory(default_schema=Schema(trim_trailing_underscore=True))
 
-        self.message_callback = message_callback
+        self.callback = message_callback
 
         self.me = None
 
@@ -39,7 +39,7 @@ class Telegram:
     async def get_updates(self, offset, timeout,
                           limit):
         params = {'timeout': timeout, 'offset': offset,
-                  'allowed_updates': '["message"]'}  # TODO: remove it
+                  'allowed_updates': '["message", "callback_query"]'}  # TODO: remove it
 
         if limit:
             params['limit'] = limit
@@ -48,10 +48,20 @@ class Telegram:
         return self.factory.load(updates, Updates)
 
     async def process_message(self, update):
-        if not self.message_callback:
+        if not self.callback:
             return  # skip update because message callback is not set
         msg = Message(update.message, self)
-        cb_res = self.message_callback(msg)
+        cb_res = self.callback(msg)
+
+        if iscoroutine(cb_res):
+            await cb_res
+
+    async def process_callback_query(self, update):
+        if not self.callback:
+            return
+
+        query = CallbackQueryHandler(update.callback_query, self)
+        cb_res = self.callback(query)
 
         if iscoroutine(cb_res):
             await cb_res
@@ -60,6 +70,8 @@ class Telegram:
         for update in updates.result:
             if update.message:
                 self.loop.create_task(self.process_message(update))
+            elif update.callback_query:
+                self.loop.create_task(self.process_callback_query(update))
 
     async def _loop(self, updates_limit, timeout):
         self.running = True
@@ -73,6 +85,9 @@ class Telegram:
             if updates.result:
                 offset = updates.result[-1].update_id+1
                 self.loop.create_task(self.process_updates(updates))
+
+    def set_callback(self, callback):
+        self.callback = callback
 
     def poll(self, updates_limit=None, timeout=None):
         self.loop.run_until_complete(self._loop(updates_limit, timeout))

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional, List, Any
 
+from .keyboard import RelativeInlineKeyboard
 
 @dataclass
 class File:
@@ -426,7 +427,51 @@ class Updates:
     result: List[Update]
 
 
+class CallbackQueryHandler:
+    data: CallbackQuery
+
+    def __init__(self, data, telegram):
+        self.data = data
+        self.tg = telegram
+
+        self.memory = {}
+
+    def answer(self, text=None, query_id=None,
+               show_alert=False, url=None,
+               cache_time=0):
+        if query_id is None:
+            query_id = self.data.id
+
+        json = {'callback_query_id': query_id,
+                'show_alert': show_alert,
+                'cache_time': cache_time}
+
+        if url is not None:
+            json['url'] = url
+
+        if text is not None:
+            json['text'] = text
+
+        return self.tg.loop.create_task(
+            self.tg.method("answerCallbackQuery", json)
+        )
+
+    def notify(self, text=None, query_id=None,
+               url=None, cache_time=0):
+        return self.answer(text, query_id,
+                           False, url,
+                           cache_time)
+
+    def alert(self, text=None, query_id=None,
+              url=None, cache_time=0):
+        return self.answer(text, query_id,
+                           True, url,
+                           cache_time)
+
+
 class Message:
+    data: MessageData
+
     def __init__(self, data, telegram):
         self.tg = telegram
         self.data = data
@@ -436,7 +481,14 @@ class Message:
     def send(self, text=None, chat_id=None,
              reply=False, reply_message_id=None,
              parse_mode="html", disable_web_page_preview=False,
-             disable_notification=False):
+             disable_notification=False, reply_markup=None):
+
+        if reply_message_id is None:
+            reply_message_id = self.data.message_id
+
+        if reply_markup is not None and isinstance(reply_markup, RelativeInlineKeyboard):
+            reply_markup = reply_markup.build()
+
         return self.tg.loop.create_task(
             self.tg.method("sendMessage", {
                 'text': text or '',
@@ -444,7 +496,16 @@ class Message:
                 'disable_web_page_preview': disable_web_page_preview,
                 'disable_notification': disable_notification,
                 **({'reply_to_message_id': reply_message_id} if reply else {}),
+                **({'reply_markup': reply_markup} if reply_markup else {}),
                 'chat_id': chat_id or self.data.chat.id
             })
         )
 
+    def reply(self, text=None, chat_id=None,
+              reply_message_id=None, parse_mode="html",
+              disable_web_page_preview=False, disable_notification=False,
+              reply_markup=None):
+        return self.send(text, chat_id, True,
+                         reply_message_id, parse_mode,
+                         disable_web_page_preview, disable_notification,
+                         reply_markup)
