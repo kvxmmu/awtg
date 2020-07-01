@@ -15,3 +15,9 @@ def function_filter(message):
     return message.data.get_text() == 'op'
 
 ```
+
+
+filter `__call__` signature: `Filter(entity[, manager])`
+
+All AsyncHandler that marked as callback handler are used to handle callback queries
+
