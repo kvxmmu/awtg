@@ -133,9 +133,16 @@ class CustomBinRPC:
         return args
 
     def __call__(self, callback):
-        data = self.parse(callback.data.get_data())
+        response = self.parse(callback.data.get_data())
 
-        print(data)
+        if response is None:
+            return False
+
+        args, procedure_name = response
+
+        callback.memory['cbinrpc_args'] = args
+
+        return True
 
 
 def build_cjsonrpc_procedure(procedure_name, **args):

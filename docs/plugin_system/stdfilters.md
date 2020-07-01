@@ -81,7 +81,66 @@ Filters:
 Builders:
     build_cjsonrpc_procedure(procedure_name, **args) -> custom json rpc string
     build_cbinrpc_procedure(procedure_name, **args) -> custom binary rpc string encoded with base64
+```
+
+Example:
+```python
+
+from awtg.filtering.manager import AsyncHandler
+
+from awtg.filtering.stdfilters.callback import (CustomBinRPC, CustomJsonRPC,
+                                                build_cbinrpc_procedure, build_cjsonrpc_procedure)
+from awtg.filtering.stdfilters.std import Command
 
 
+from awtg.keyboard import RelativeInlineKeyboard
 
+
+@AsyncHandler
+async def send_cjson_buttons(message):
+    keyboard = RelativeInlineKeyboard()
+    keyboard.add_button('Do love', callback_data=build_cjsonrpc_procedure('cat', checkout=1))
+
+    message.reply('Your buttons:', reply_markup=keyboard)
+
+
+@AsyncHandler
+async def send_cbin_buttons(message):
+    keyboard = RelativeInlineKeyboard()
+    keyboard.add_button('Do love', callback_data=build_cbinrpc_procedure('cat', checkout=1))
+
+    message.reply('Your buttons:', reply_markup=keyboard)
+
+
+@AsyncHandler
+async def json_reaction(callback):
+    print(callback.memory['cjsonrpc_args'])  # sample output: {'checkout': 1}
+    
+    callback.notify('Notification! JSON!')
+
+
+@AsyncHandler
+async def bin_reaction(callback):
+    print(callback.memory['cbinrpc_args'])  # sample output: {'checkout': 1}
+    
+    callback.notify('Notification! Binary!')
+
+
+exports = (
+    send_cjson_buttons.add_filters(
+        Command('send_cjson')
+    ),
+
+    json_reaction.set_callback().add_filters(
+        CustomJsonRPC('cat')  # cat procedure
+    ),
+
+    send_cbin_buttons.add_filters(
+        Command('send_cbin')
+    ),
+
+    bin_reaction.add_filters(
+        CustomBinRPC('cat')
+    )
+)
 ```
