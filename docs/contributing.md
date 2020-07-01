@@ -1,6 +1,6 @@
 # AWTG contributing
 
-All new contributors are welcome, currently we need in:
+All new contributors are welcome, as of right now we need:
 
 1) English grammar fixing
 2) Adding new standart filters
