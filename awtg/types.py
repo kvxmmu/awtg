@@ -5,6 +5,7 @@ from typing import Optional, List, Any
 
 from .keyboard import RelativeInlineKeyboard
 
+
 @dataclass
 class File:
     file_id: str
@@ -361,6 +362,9 @@ class CallbackQuery:
     inline_message_id: Optional[int] = None
     data: Optional[str] = None
     game_short_name: Optional[str] = None
+
+    def get_data(self):
+        return self.data or ''
 
 
 @dataclass
