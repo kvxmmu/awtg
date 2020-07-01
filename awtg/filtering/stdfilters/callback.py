@@ -23,8 +23,7 @@ class CustomJsonRPC:
             }
     """
 
-    def __init__(self, procedure_name,
-                 ):
+    def __init__(self, procedure_name):
         self.reaction_procedure = procedure_name
 
     def __call__(self, callback):

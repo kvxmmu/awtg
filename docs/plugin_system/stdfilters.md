@@ -52,3 +52,36 @@ RegularExpression(expr, match_type="match",
 
 ```
 
+Callback filters:
+```text
+AWTG providing simple RPC protocol for callback buttons, here explained RPC filters:
+
+Filters:
+    CustomJsonRPC(procedure_name) - json rpc with scheme:
+        {
+            "procedure": procedure_name,
+            "args": {
+                // data
+            }
+        }
+        
+        args are placed in args memory field
+    
+    CustomBinRPC(procedure_name) - binary rpc scheme
+        go check doc string for format description
+    
+        binary data is encoded with base64 algorithm
+    
+        Available types:
+          1) bytes
+          2) str
+          3) int(value no more than 2^32/2)
+          4) dict (nested)
+
+Builders:
+    build_cjsonrpc_procedure(procedure_name, **args) -> custom json rpc string
+    build_cbinrpc_procedure(procedure_name, **args) -> custom binary rpc string encoded with base64
+
+
+
+```
