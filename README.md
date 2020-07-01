@@ -10,3 +10,4 @@ References:
     2) [Manager object](docs/plugin_system/manager.md)
     3) [Standart filters](docs/plugin_system/stdfilters.md)
 3) [Basic usage](docs/primitive_usage.md)
+4) [AWTG Objects](docs/objects.md)
