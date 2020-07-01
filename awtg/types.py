@@ -433,12 +433,15 @@ class Updates:
 
 class CallbackQueryHandler:
     data: CallbackQuery
+    message: Optional[Message] = None
 
     def __init__(self, data, telegram):
         self.data = data
         self.tg = telegram
 
         self.memory = {}
+
+        self.message = Message(self.data.message, telegram)
 
     def answer(self, text=None, query_id=None,
                show_alert=False, url=None,
@@ -481,6 +484,170 @@ class Message:
         self.data = data
 
         self.memory = {}
+
+    def set_chat_title(self, title, chat_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("setChatTitle", {
+                'chat_id': chat_id,
+                'title': title
+            })
+        )
+
+    def set_chat_description(self, description, chat_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("setChatDescription", {
+                'chat_id': chat_id,
+                'description': description
+            })
+        )
+
+    def pin_chat_message(self, disable_notification=False, chat_id=None,
+                         message_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if message_id is None:
+            message_id = self.data.message_id
+
+        return self.tg.loop.create_task(
+            self.tg.method("pinChatMessage", {
+                'chat_id': chat_id,
+                'message_id': message_id,
+                'disable_notification': disable_notification
+            })
+        )
+
+    def unpin_chat_message(self, chat_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("unpinChatMessage", {
+                'chat_id': chat_id
+            })
+        )
+
+    def leave_chat(self, chat_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("leaveChat", {
+                'chat_id': chat_id
+            })
+        )
+
+    def restrict(self, permissions, chat_id=None,
+                 user_id=None, until_date=0):
+        serialized = self.tg.factory.dump(permissions)
+
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if user_id is None:
+            user_id = self.data.from_.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("restrictChatMember", {
+                'until_date': until_date,
+                'user_id': user_id,
+                'chat_id': chat_id,
+                'permissions': serialized
+            })
+        )
+
+    def set_admin_custom_title(self, title, chat_id=None,
+                               user_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if user_id is None:
+            user_id = self.data.from_.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("setChatAdministratorCustomTitle", {
+                'user_id': user_id,
+                'chat_id': chat_id,
+                'custom_title': title
+            })
+        )
+
+    def edit(self, chat_id=None, message_id=None,
+             text='', parse_mode="html",
+             disable_webpage_preview=False, reply_markup=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if message_id is None:
+            message_id = self.data.message_id
+
+        json = {
+            'chat_id': chat_id,
+            'message_id': message_id,
+            'parse_mode': parse_mode,
+            'disable_webpage_preview': disable_webpage_preview,
+            'text': text
+        }
+
+        if isinstance(reply_markup, RelativeInlineKeyboard):
+            reply_markup = reply_markup.build()
+
+        if reply_markup is not None:
+            json['reply_markup'] = reply_markup
+
+        return self.tg.loop.create_task(
+            self.tg.method("editMessageText", json)
+        )
+
+    def delete(self, chat_id=None, message_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if message_id is None:
+            message_id = self.data.message_id
+
+        return self.tg.loop.create_task(
+            self.tg.method("deleteMessage", {
+                'chat_id': chat_id,
+                'message_id': message_id
+            })
+        )
+
+    def kick(self, chat_id=None, user_id=None,
+             until_date=0):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if user_id is None:
+            user_id = self.data.from_.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("kickChatMember", {
+                'user_id': user_id,
+                'chat_id': chat_id,
+                'until_date': until_date
+            })
+        )
+
+    def unban(self, chat_id=None, user_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if user_id is None:
+            user_id = self.data.from_.id
+
+        return self.tg.loop.create_task(
+            self.tg.method("unbanChatMember", {
+                'chat_id': chat_id,
+                'user_id': user_id
+            })
+        )
 
     def send(self, text=None, chat_id=None,
              reply=False, reply_message_id=None,

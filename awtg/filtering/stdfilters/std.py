@@ -223,3 +223,21 @@ class Split:
 
         return True
 
+
+def requires_manager(message, manager):
+    message.memory['manager'] = manager
+
+    return True
+
+
+def requires_messages_pool(message, manager):
+    message.memory['messages_pool'] = manager.messages_pool
+
+    return True
+
+
+def record_message(message, manager):
+    pool = manager.messages_pool
+    pool.add_message(message.data.chat.id, message)
+
+    return True

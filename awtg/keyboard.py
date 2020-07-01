@@ -37,5 +37,12 @@ class RelativeInlineKeyboard:
 
         return self
 
+    @classmethod
+    def from_json(cls, json):
+        keyboard = cls()
+        keyboard.keyboard = json['inline_keyboard']
+
+        return keyboard
+
     def build(self):
         return dumps({'inline_keyboard': self.keyboard}, ensure_ascii=False)

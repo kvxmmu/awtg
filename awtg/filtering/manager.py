@@ -6,6 +6,7 @@ from functools import partial
 from copy import copy
 
 from awtg.types import CallbackQueryHandler, Message
+from awtg.storage import MessagesPool
 
 
 async def check_filter(message, filters,
@@ -36,10 +37,14 @@ class AsyncHandler:
 
     __optional__ = True
     __callback__ = False
+    __every_message_handler__ = False
 
     def __init__(self, callback):
         self.callback = callback
         self.filters = []
+        self.mutual_callbacks = []
+
+        self.await_callbacks = True
 
     @staticmethod
     def is_optional(func):
@@ -49,6 +54,10 @@ class AsyncHandler:
     def is_callback(func):
         return getattr(func, '__callback__', False)
 
+    @staticmethod
+    def is_every_message_handler(func):
+        return getattr(func, '__every_message_handler__', False)
+
     def set_optional(self, value=True):
         self.__optional__ = value
         return self
@@ -57,6 +66,14 @@ class AsyncHandler:
         self.__callback__ = value
 
         return self
+
+    def set_every_message_handler(self, value=True):
+        self.__every_message_handler__ = value
+
+        return self
+
+    def set_await_callbacks(self, value=False):
+        self.await_callbacks = value
 
     def add_filter(self, filter_):
         self.filters.append(filter_)
@@ -68,10 +85,36 @@ class AsyncHandler:
 
         return self
 
+    def add_mutual_callback(self, callback):
+        self.mutual_callbacks.append(callback)
+
+        return self
+
+    def add_mutual_callbacks(self, *callbacks):
+        self.mutual_callbacks.extend(callbacks)
+
+        return self
+
     def copy(self):
         return copy(self)
 
-    def __call__(self, message):
+    async def __call__(self, message, manager):
+        for callback in self.mutual_callbacks:
+            callback_args = get_function_arguments(callback)
+
+            if len(callback_args) == 2:
+                response = callback(message, manager)
+            elif len(callback_args) == 1:
+                response = callback(callback_args)
+            else:
+                raise ValueError('Invalid filter signature')
+
+            if iscoroutine(response):
+                if self.await_callbacks:
+                    await response
+                else:
+                    message.tg.loop.create_task(response)
+
         callback_data = self.callback(message)
 
         if iscoroutine(callback_data):
@@ -94,8 +137,13 @@ class Manager:
 
         self.handlers = []
 
+        self.messages_pool = None
+
     def import_plugin(self, plugin):
         self.handlers.extend(plugin.exports)
+
+    def require_messages_pool(self, *args, **kwargs):
+        self.messages_pool = MessagesPool(*args, **kwargs)
 
     def import_handler(self, handler):
         self.handlers.append(handler)
@@ -130,6 +178,10 @@ class Manager:
             elif AsyncHandler.is_callback(handler) and isinstance(entity, Message):
                 continue
 
+            if AsyncHandler.is_every_message_handler(handler):
+                entity.tg.loop.create_task(handler(entity, self))
+                continue
+
             response = await check_filter(entity, handler.filters,
                                           self)
             optional = AsyncHandler.is_optional(handler)
@@ -139,7 +191,7 @@ class Manager:
             elif not response and not optional:
                 return
 
-            handler(entity)
+            entity.tg.loop.create_task(handler(entity, self))
 
 
 def create_async_handler(filters, optional, handler):
