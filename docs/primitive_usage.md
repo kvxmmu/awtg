@@ -10,7 +10,7 @@ TOKEN = 'bot api token'
 tg = Telegram(TOKEN)
 
 
-@tg.set_message_callback
+@tg.set_callback
 async def callback(message):
     message.send('Ok')
 
