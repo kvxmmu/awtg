@@ -1,6 +1,6 @@
 # AWTG base plugin
 
-plugin examples:
+Filter examples:
 ```python
 
 class ClassFilter:
