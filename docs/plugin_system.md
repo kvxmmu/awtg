@@ -28,6 +28,7 @@ manager = Manager()
 plugins = extract_from_dir('plugins')  # sample output: [<module 'plugins.test' from 'plugins dir'>
 
 tg.set_callback(manager)  # Manager is plugin management system base class
+manager.import_plugins(plugins)
 
 tg.poll()
 ```
