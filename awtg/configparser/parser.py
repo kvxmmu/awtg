@@ -3,11 +3,20 @@ from .lexer import (lex, ID,
                     CLOSE_BRACKET, STRING,
                     FLOAT, INTEGER, BOOLEAN)
 
+from io import BufferedIOBase
+
 value_converters = {
     STRING: lambda string: string[1:-1],
     FLOAT: float,
     INTEGER: int,
     BOOLEAN: lambda string: string == "true"
+}
+
+value_dumpers = {
+    str: lambda string: '"'+string.replace('"', '\\"')+'"',
+    float: str,
+    int: str,
+    bool: lambda boolean: "true" if boolean else "false",
 }
 
 
@@ -61,5 +70,42 @@ def parse(text):
 
 
 def load(filename):
+    if isinstance(filename, BufferedIOBase):
+        return parse(filename.read())
+
     with open(filename) as file:
         return parse(file.read())
+
+
+def make_indent(indentation, indentation_char,
+                string=''):
+    return (indentation_char * indentation) + string
+
+
+def dumps(config, indentation=0,
+          indentation_char='    '):
+    data = ''
+
+    for key, value in config.items():
+        if isinstance(value, dict):
+            data += make_indent(indentation, indentation_char,
+                                key + ' {\n')
+            data += make_indent(indentation, indentation_char)
+            data += dumps(value, indentation+1, indentation_char)
+            data += '\n'+make_indent(indentation, indentation_char, '}')
+
+            continue
+
+        data += make_indent(indentation, indentation_char,
+                            key + ': ' + value_dumpers[type(value)](value))
+        data += '\n'
+
+    return data.rstrip()
+
+
+def dump(output_name, config: dict):
+    if isinstance(output_name, BufferedIOBase):
+        return output_name.write(dumps(config))  # noqa
+
+    with open(output_name, 'w') as file:
+        file.write(dumps(config))
