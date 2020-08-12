@@ -1,1 +1,3 @@
-from .parser import parse
+from .parser import (parse, load,
+                     dumps, dump)
+
