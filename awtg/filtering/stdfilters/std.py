@@ -224,6 +224,14 @@ class Split:
         return True
 
 
+def left_from_chat(message):
+    return message.data.left_chat_member is not None
+
+
+def new_chat_members(message):
+    return bool(message.data.new_chat_members)
+
+
 def requires_manager(message, manager):
     message.memory['manager'] = manager
 

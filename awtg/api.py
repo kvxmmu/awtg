@@ -1,12 +1,14 @@
-from rapidjson import loads, dumps
+from rapidjson import loads
 from .types import (Updates, User,
-                    Message, CallbackQueryHandler)
+                    Message, CallbackQueryHandler,
+                    InlineQuery)
 from dataclass_factory import Factory, Schema
 
 import asyncio
 import aiohttp
 
 from inspect import iscoroutine
+from io import BufferedIOBase
 
 
 class Telegram:
@@ -30,16 +32,33 @@ class Telegram:
 
         self.me = None
 
-    async def method(self, method_name, params=None):
+    async def method(self, method_name, params=None,
+                     remove_none_values=False):
+        ios = {}
+
         if params is None:
             params = {}
-        async with self.session.post(self.url+method_name, data=params, proxy=self.proxy) as response:
+
+        if remove_none_values:
+            params = {k: v for k, v in params.items() if v is not None}
+
+        for k, v in params.copy().items():
+            if isinstance(v, BufferedIOBase):
+                ios[k] = v
+                del params[k]
+
+        if not ios:
+            async with self.session.post(self.url+method_name, data=params) as response:
+                return loads(await response.text())
+
+        async with self.session.post(self.url+method_name, params=params,
+                                     data=ios) as response:
             return loads(await response.text())
 
     async def get_updates(self, offset, timeout,
                           limit):
         params = {'timeout': timeout, 'offset': offset,
-                  'allowed_updates': '["message", "callback_query"]'}  # TODO: remove it
+                  'allowed_updates': '["message", "callback_query", "inline_query"]'}  # TODO: remove it
 
         if limit:
             params['limit'] = limit
@@ -66,12 +85,26 @@ class Telegram:
         if iscoroutine(cb_res):
             await cb_res
 
+    async def process_inline_query(self, update):
+        if not self.callback:
+            return
+
+        inline = update.inline_query
+        inline_query = InlineQuery(inline, self)
+
+        cb_res = self.callback(inline_query)
+
+        if iscoroutine(cb_res):
+            await cb_res
+
     async def process_updates(self, updates):
         for update in updates.result:
             if update.message:
                 self.loop.create_task(self.process_message(update))
             elif update.callback_query:
                 self.loop.create_task(self.process_callback_query(update))
+            elif update.inline_query:
+                self.loop.create_task(self.process_inline_query(update))
 
     async def _loop(self, updates_limit, timeout):
         self.running = True

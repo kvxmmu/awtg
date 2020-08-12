@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Any
 
 from .keyboard import RelativeInlineKeyboard
+from .inline import InlineResultBuilder
+
+DEFAULT_MARKUP = "markdown"
 
 
 @dataclass
@@ -343,16 +346,6 @@ class MessageData:
 
 
 @dataclass
-class InlineQuery:
-    id: str
-    from_: User
-    query: str
-    offset: str
-
-    location: Optional[Location] = None
-
-
-@dataclass
 class CallbackQuery:
     id: str
     from_: User
@@ -413,7 +406,7 @@ class Update:
     channel_post: Optional[MessageData] = None
     edited_channel_post: Optional[MessageData] = None
 
-    inline_query: Optional[InlineQuery] = None
+    inline_query: Optional[InlineQueryData] = None
     chosen_inline_result: Optional[ChosenInlineResult] = None
 
     callback_query: Optional[CallbackQuery] = None
@@ -426,9 +419,89 @@ class Update:
 
 
 @dataclass
+class LoginUrl:
+    url: str
+
+    forward_text: Optional[str] = None
+    bot_username: Optional[str] = None
+    request_write_access: Optional[bool] = None
+
+
+@dataclass
+class InlineKeyboardButtonPlug:
+    text: str
+
+    url: Optional[str] = None
+    login_url: Optional[LoginUrl] = None
+    callback_data: Optional[str] = None
+    switch_inline_query: Optional[str] = None
+    callback_game: Optional[Any] = None
+    pay: Optional[bool] = None
+
+
+@dataclass
+class InputTextMessageContent:
+    message_text: str
+
+    parse_mode: Optional[str] = None
+    disable_web_page_preview: Optional[bool] = None
+
+
+@dataclass
 class Updates:
     ok: bool
     result: List[Update]
+
+
+@dataclass
+class InlineQueryData:
+    id: str
+    query: str
+    offset: str
+    from_: User
+
+    location: Optional[Location] = None
+
+
+class InlineQuery:
+    def __init__(self, data: InlineQueryData, telegram):
+        self.data = data
+        self.tg = telegram
+
+        self.builder = InlineResultBuilder()
+        self.memory = {}
+
+    async def _respond(self, cache_time=300,
+                       is_personal=False, next_offset=None,
+                       switch_pm_text=None, switch_pm_parameter=None):
+        query = self.builder.build()
+
+        json = {
+            'inline_query_id': self.data.id,
+            'cache_time': cache_time,
+            'is_personal': is_personal
+        }
+
+        if switch_pm_text is not None:
+            json['switch_pm_text'] = switch_pm_text
+
+        if next_offset is not None:
+            json['next_offset'] = next_offset
+
+        if switch_pm_parameter is not None:
+            json['switch_pm_parameter'] = switch_pm_parameter
+
+        json['results'] = query
+
+        return await self.tg.method("answerInlineQuery", json)
+
+    def respond(self, cache_time=300,
+                is_personal=False, next_offset=None,
+                switch_pm_text=None, switch_pm_parameter=None):
+        return self.tg.loop.create_task(
+            self._respond(cache_time, is_personal,
+                          next_offset, switch_pm_text, switch_pm_parameter)
+        )
 
 
 class CallbackQueryHandler:
@@ -523,6 +596,33 @@ class Message:
             })
         )
 
+    def send_photo(self, photo, chat_id=None,
+                   caption=None, parse_mode=None,
+                   disable_notification=None, reply_to_message_id=None,
+                   reply=False, reply_markup=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if parse_mode is None:
+            parse_mode = DEFAULT_MARKUP
+
+        if reply_to_message_id is None:
+            reply_to_message_id = self.data.message_id
+
+        return self.tg.loop.create_task(
+            self.tg.method(
+                "sendPhoto", {
+                    "chat_id": chat_id,
+                    "disable_notification": disable_notification,
+                    "reply_markup": reply_markup,
+                    **({"reply_to_message_id": reply_to_message_id} if reply else {}),
+                    "caption": caption,
+                    "parse_mode": parse_mode,
+                    "photo": photo
+                },
+                remove_none_values=True)
+        )
+
     def unpin_chat_message(self, chat_id=None):
         if chat_id is None:
             chat_id = self.data.chat.id
@@ -579,7 +679,7 @@ class Message:
         )
 
     def edit(self, chat_id=None, message_id=None,
-             text='', parse_mode="html",
+             text='', parse_mode=DEFAULT_MARKUP,
              disable_webpage_preview=False, reply_markup=None):
         if chat_id is None:
             chat_id = self.data.chat.id
@@ -651,7 +751,7 @@ class Message:
 
     def send(self, text=None, chat_id=None,
              reply=False, reply_message_id=None,
-             parse_mode="html", disable_web_page_preview=False,
+             parse_mode=DEFAULT_MARKUP, disable_web_page_preview=False,
              disable_notification=False, reply_markup=None):
 
         if reply_message_id is None:
@@ -673,7 +773,7 @@ class Message:
         )
 
     def reply(self, text=None, chat_id=None,
-              reply_message_id=None, parse_mode="html",
+              reply_message_id=None, parse_mode=DEFAULT_MARKUP,
               disable_web_page_preview=False, disable_notification=False,
               reply_markup=None):
         return self.send(text, chat_id, True,

@@ -5,7 +5,8 @@ from importlib import import_module
 from functools import partial
 from copy import copy
 
-from awtg.types import CallbackQueryHandler, Message
+from awtg.types import (CallbackQueryHandler, Message,
+                        InlineQuery)
 from awtg.storage import MessagesPool
 
 
@@ -36,7 +37,10 @@ def get_function_arguments(func):
 class AsyncHandler:
 
     __optional__ = True
+
     __callback__ = False
+    __inline__ = False
+
     __every_message_handler__ = False
 
     def __init__(self, callback):
@@ -52,18 +56,35 @@ class AsyncHandler:
 
     @staticmethod
     def is_callback(func):
-        return getattr(func, '__callback__', False)
+        return getattr(func, '__callback__', AsyncHandler.__callback__)
 
     @staticmethod
     def is_every_message_handler(func):
-        return getattr(func, '__every_message_handler__', False)
+        return getattr(func, '__every_message_handler__', AsyncHandler.__every_message_handler__)
+
+    @staticmethod
+    def is_inline(func):
+        return getattr(func, '__inline__', AsyncHandler.__inline__)
+
+    @staticmethod
+    def is_message(func):
+        res = not (getattr(func, '__inline__', AsyncHandler.__inline__) or
+                   getattr(func, '__callback__', AsyncHandler.__callback__))
+
+        return res
 
     def set_optional(self, value=True):
         self.__optional__ = value
+
         return self
 
     def set_callback(self, value=True):
         self.__callback__ = value
+
+        return self
+
+    def set_inline(self, value=True):
+        self.__inline__ = value
 
         return self
 
@@ -125,15 +146,20 @@ class AsyncHandler:
 
 class Manager:
     def __init__(self, default_message_filters=None,
-                 default_callback_filters=None):
+                 default_callback_filters=None,
+                 default_inline_filters=None):
         if default_message_filters is None:
             default_message_filters = []
 
         if default_callback_filters is None:
             default_callback_filters = []
 
+        if default_inline_filters is None:
+            default_inline_filters = []
+
         self.default_message_filters = default_message_filters
         self.default_callback_filters = default_callback_filters
+        self.default_inline_filters = default_inline_filters
 
         self.handlers = []
 
@@ -159,12 +185,16 @@ class Manager:
             self.import_plugin(plugin)
 
     async def __call__(self, entity):
-        assert isinstance(entity, Message) or isinstance(entity, CallbackQueryHandler)
+        assert isinstance(entity, (Message, CallbackQueryHandler,
+                                   InlineQuery))
 
         filters_list = self.default_message_filters
 
         if isinstance(entity, CallbackQueryHandler):
             filters_list = self.default_callback_filters
+
+        if isinstance(entity, InlineQuery):
+            filters_list = self.default_inline_filters
 
         default_check = await check_filter(entity, filters_list,
                                            self)
@@ -173,9 +203,11 @@ class Manager:
             return
 
         for handler in self.handlers:
-            if not AsyncHandler.is_callback(handler) and isinstance(entity, CallbackQueryHandler):
+            if AsyncHandler.is_callback(handler) and isinstance(entity, (Message, InlineQuery)):
                 continue
-            elif AsyncHandler.is_callback(handler) and isinstance(entity, Message):
+            elif AsyncHandler.is_inline(handler) and isinstance(entity, (Message, CallbackQueryHandler)):
+                continue
+            elif AsyncHandler.is_message(handler) and isinstance(entity, (CallbackQueryHandler, InlineQuery)):
                 continue
 
             if AsyncHandler.is_every_message_handler(handler):
