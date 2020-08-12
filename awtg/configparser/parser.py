@@ -53,7 +53,6 @@ def _parse(dest, source, until_label=None):
 
 def parse(text):
     tokens = lex(text)
-
     config = {}
 
     _parse(config, tokens)
