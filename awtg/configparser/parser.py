@@ -58,3 +58,8 @@ def parse(text):
     _parse(config, tokens)
 
     return config
+
+
+def load(filename):
+    with open(filename) as file:
+        return parse(file.read())
