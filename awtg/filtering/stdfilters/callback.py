@@ -139,10 +139,9 @@ class CustomBinRPC:
             return False
 
         args, procedure_name = response
-
         callback.memory['cbinrpc_args'] = args
 
-        return True
+        return procedure_name == self.procedure_reaction
 
 
 def build_cjsonrpc_procedure(procedure_name, **args):
