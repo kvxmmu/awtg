@@ -25,9 +25,7 @@ class Telegram:
         self.url = "https://api.telegram.org/bot%s/" % bot_token
 
         self.running = False
-
         self.factory = Factory(default_schema=Schema(trim_trailing_underscore=True))
-
         self.callback = message_callback
 
         self.me = None
@@ -55,6 +53,13 @@ class Telegram:
                                      data=ios) as response:
             return loads(await response.text())
 
+    async def get_file_url(self, file_id):
+        result = (await self.method('getFile', {
+            'file_id': file_id
+        }))['result']
+
+        return 'https://api.telegram.org/file/bot%s/%s' % (self.bot_token, result['file_path'])
+
     async def get_updates(self, offset, timeout,
                           limit):
         params = {'timeout': timeout, 'offset': offset,
@@ -64,6 +69,7 @@ class Telegram:
             params['limit'] = limit
 
         updates = await self.method("getUpdates", params)
+
         return self.factory.load(updates, Updates)
 
     async def process_message(self, update):

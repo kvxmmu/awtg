@@ -352,9 +352,10 @@ class CallbackQuery:
     chat_instance: str
 
     message: Optional[MessageData] = None
-    inline_message_id: Optional[int] = None
+    inline_message_id: Optional[str] = None
     data: Optional[str] = None
     game_short_name: Optional[str] = None
+    chat_instance: Optional[str] = None
 
     def get_data(self):
         return self.data or ''
@@ -606,7 +607,7 @@ class Message:
         if parse_mode is None:
             parse_mode = DEFAULT_MARKUP
 
-        if reply_to_message_id is None:
+        if reply_to_message_id is None and self.data is not None:
             reply_to_message_id = self.data.message_id
 
         return self.tg.loop.create_task(

@@ -147,7 +147,8 @@ class AsyncHandler:
 class Manager:
     def __init__(self, default_message_filters=None,
                  default_callback_filters=None,
-                 default_inline_filters=None):
+                 default_inline_filters=None,
+                 config=None):
         if default_message_filters is None:
             default_message_filters = []
 
@@ -164,6 +165,7 @@ class Manager:
         self.handlers = []
 
         self.messages_pool = None
+        self.config = config
 
     def import_plugin(self, plugin):
         self.handlers.extend(plugin.exports)

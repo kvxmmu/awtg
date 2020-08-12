@@ -44,5 +44,8 @@ class RelativeInlineKeyboard:
 
         return keyboard
 
-    def build(self):
+    def build(self, get_object=False):
+        if get_object:
+            return {'inline_keyboard': self.keyboard}
+
         return dumps({'inline_keyboard': self.keyboard}, ensure_ascii=False)

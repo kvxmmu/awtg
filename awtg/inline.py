@@ -20,7 +20,7 @@ class InlineResultBuilder:
             id_ = str(uuid4())
 
         if reply_markup is not None and hasattr(reply_markup, 'build'):
-            reply_markup = reply_markup.build()  # noqa
+            reply_markup = reply_markup.build(True)  # noqa
 
         content = {}
         json = {}
@@ -52,22 +52,32 @@ class InlineResultBuilder:
               photo_height=None, title=None,
               description=None, caption=None,
               parse_mode=None, text='',
-              reply_markup=None, disable_webpage_preview=False):
+              reply_markup=None, disable_webpage_preview=False,
+              cached=False):
         if hasattr(reply_markup, 'build'):
-            reply_markup = reply_markup.build()  # noqa
+            reply_markup = reply_markup.build(True)  # noqa
 
         if thumb_url is None:
             thumb_url = photo_url
+
+        photo_js = {}
+
+        if cached:
+            photo_js['photo_file_id'] = photo_url
+        else:
+            photo_js = {
+                'photo_url': photo_url,
+                'thumb_url': thumb_url
+            }
 
         return self.append_base(PHOTO_TYPE,
                                 id_=id_, parse_mode=parse_mode,
                                 reply_markup=reply_markup,
                                 enable_content=True,
                                 message_text=text, disable_webpage_preview=disable_webpage_preview,
-                                photo_url=photo_url, thumb_url=thumb_url,
                                 photo_width=photo_width, photo_height=photo_height,
                                 title=title, description=description,
-                                caption=caption)
+                                caption=caption, **photo_js)
 
     def article(self, title, message_text,
                 url=None, hide_url=None,
@@ -76,7 +86,7 @@ class InlineResultBuilder:
                 parse_mode=None, id_=None,
                 reply_markup=None):
         if hasattr(reply_markup, 'build'):
-            reply_markup = reply_markup.build()  # noqa
+            reply_markup = reply_markup.build(True)  # noqa
 
         return self.append_base(ARTICLE_TYPE, title=title,
                                 url=url, hide_url=hide_url,
@@ -93,7 +103,7 @@ class InlineResultBuilder:
             caption=None, parse_mode=None,
             reply_markup=None, message_text=None):
         if hasattr(reply_markup, 'build'):
-            reply_markup = reply_markup.build()  # noqa
+            reply_markup = reply_markup.build(True)  # noqa
 
         if gif_thumbnail is None:
             gif_thumbnail = gif_url

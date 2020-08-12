@@ -244,6 +244,12 @@ def requires_messages_pool(message, manager):
     return True
 
 
+def requires_config(message, manager):
+    message.memory['config'] = manager.config
+
+    return True
+
+
 def record_message(message, manager):
     pool = manager.messages_pool
     pool.add_message(message.data.chat.id, message)
