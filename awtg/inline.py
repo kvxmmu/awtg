@@ -5,6 +5,7 @@ from uuid import uuid4
 ARTICLE_TYPE = 'article'
 PHOTO_TYPE = 'photo'
 GIF_TYPE = 'gif'
+VIDEO_TYPE = 'video'
 
 
 class InlineResultBuilder:
@@ -116,6 +117,16 @@ class InlineResultBuilder:
                                 caption=caption, parse_mode=parse_mode,
                                 message_text=message_text,
                                 enable_content=True)
+
+    def video(self, video_id, id_=None,
+              title=None, description=None,
+              caption=None, parse_mode=None,
+              reply_markup=None, text=''):
+        return self.append_base(VIDEO_TYPE, id_=id_,
+                                title=title, description=description,
+                                caption=caption, parse_mode=parse_mode,
+                                reply_markup=reply_markup, message_text=text,
+                                enable_content=True, video_file_id=video_id)
 
     def build(self):
         return dumps(self.results)

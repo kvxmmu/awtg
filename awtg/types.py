@@ -624,6 +624,40 @@ class Message:
                 remove_none_values=True)
         )
 
+    def send_video(self, video, chat_id=None,
+                   caption=None, parse_mode=None,
+                   disable_notification=None, reply_to_message_id=None,
+                   reply=False, reply_markup=None,
+                   thumb=None, duration=None,
+                   width=None, height=None,
+                   supports_streaming=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if reply_to_message_id is None and self.data is not None:
+            reply_to_message_id = self.data.message_id
+
+        if hasattr(reply_markup, 'build'):
+            reply_markup = reply_markup.build()  # noqa
+
+        return self.tg.loop.create_task(
+            self.tg.method("sendVideo", {
+                "video": video,
+                "chat_id": chat_id,
+                "duration": duration,
+                "reply_markup": reply_markup,
+                "caption": caption,
+                "thumb": thumb,
+                **({"reply_to_message_id": reply_to_message_id} if reply else {}),
+                "disable_notification": disable_notification,
+                "parse_mode": parse_mode,
+                "width": width,
+                "height": height,
+                "supports_streaming": supports_streaming
+            },
+                           remove_none_values=True)
+        )
+
     def unpin_chat_message(self, chat_id=None):
         if chat_id is None:
             chat_id = self.data.chat.id
