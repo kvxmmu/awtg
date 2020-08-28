@@ -1,7 +1,7 @@
 from rapidjson import (loads, dumps,
                        JSONDecodeError)
 
-from struct import pack, unpack
+from struct import pack, unpack, error as struct_error
 from base64 import b64decode, b64encode
 from binascii import Error as BinasciiError
 
@@ -94,22 +94,16 @@ class CustomBinRPC:
         args = {}
 
         while bin_data:
-            try:
-                (key_length, value_length,
-                 value_type) = unpack("<HHB", bin_data[:5])
-            except ValueError:
-                return
+            key_length = int.from_bytes(bin_data[:2], 'little')
+            value_length = int.from_bytes(bin_data[2:4], 'little')
+            value_type = bin_data[4]
 
             bin_data = bin_data[5:]
 
-            try:
-                key = bin_data[:key_length].decode()
-            except UnicodeDecodeError:
-                return
+            key = bin_data[:key_length]
+            value = bin_data[key_length:key_length+value_length]
 
-            bin_data = bin_data[key_length:]
-            value = bin_data[:value_length]
-            bin_data = bin_data[key_length:]
+            bin_data = bin_data[key_length+value_length:]
 
             if value_type == 0x1:
                 value = int.from_bytes(value, 'little')
@@ -120,12 +114,11 @@ class CustomBinRPC:
                     return
             elif value_type == 0x4:
                 value = CustomBinRPC.parse(value, False)
-            elif value_type != 0x3:
+
+            try:
+                args[key.decode()] = value
+            except UnicodeDecodeError:
                 return
-
-            args[key] = value
-
-            bin_data = bin_data[value_length+key_length:]
 
         if header_parsing:
             return args, procedure_name
@@ -152,7 +145,15 @@ def build_cjsonrpc_procedure(procedure_name, **args):
 
 def determine_and_encode(value):
     if isinstance(value, int):
-        return INTEGER_TYPE, pack("<I", value), 4
+        length = (value.bit_length() - 1) // 8 + 1
+
+        if length == 0:
+            length += 1
+
+        data = value.to_bytes(length, 'little',
+                              signed=True)
+
+        return INTEGER_TYPE, data, len(data)
     elif isinstance(value, str):
         return STRING_TYPE, value.encode()
     elif isinstance(value, bytes):

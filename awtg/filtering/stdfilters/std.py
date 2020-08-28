@@ -86,6 +86,8 @@ class Command:
             mentioned = match.group(1)
 
             if mentioned.lower() == (message.tg.me.username or '').lower():
+                message.data.text = text[len(match.group(0)):].lstrip()
+
                 return True
 
         return False

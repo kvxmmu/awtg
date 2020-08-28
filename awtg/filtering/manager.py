@@ -224,8 +224,10 @@ class Manager:
                 continue
             elif not response and not optional:
                 return
+            else:
+                entity.tg.loop.create_task(handler(entity, self))
 
-            entity.tg.loop.create_task(handler(entity, self))
+                break
 
 
 def create_async_handler(filters, optional, handler):

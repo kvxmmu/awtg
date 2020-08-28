@@ -6,6 +6,8 @@ from typing import Optional, List, Any
 from .keyboard import RelativeInlineKeyboard
 from .inline import InlineResultBuilder
 
+from rapidjson import dumps
+
 DEFAULT_MARKUP = "markdown"
 
 
@@ -464,6 +466,31 @@ class InlineQueryData:
     location: Optional[Location] = None
 
 
+@dataclass
+class ChatMember:
+    user: User
+    status: str
+
+    custom_title: Optional[str] = None
+    until_date: Optional[int] = None
+
+    can_be_edited: Optional[bool] = None
+    can_post_messages: Optional[bool] = None
+    can_edit_messages: Optional[bool] = None
+    can_delete_messages: Optional[bool] = None
+    can_restrict_members: Optional[bool] = None
+    can_promote_members: Optional[bool] = None
+    can_change_info: Optional[bool] = None
+    can_invite_users: Optional[bool] = None
+    can_pin_messages: Optional[bool] = None
+    is_member: Optional[bool] = None
+    can_send_messages: Optional[bool] = None
+    can_send_media_messages: Optional[bool] = None
+    can_send_polls: Optional[bool] = None
+    can_send_other_messages: Optional[bool] = None
+    can_add_web_page_previews: Optional[bool] = None
+
+
 class InlineQuery:
     def __init__(self, data: InlineQueryData, telegram):
         self.data = data
@@ -624,6 +651,27 @@ class Message:
                 remove_none_values=True)
         )
 
+    async def _get_chat_member(self, chat_id=None,
+                               user_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        if user_id is None:
+            user_id = self.data.from_.id
+
+        data = await self.tg.method("getChatMember", {
+                    "chat_id": chat_id,
+                    "user_id": user_id
+                })
+
+        user = self.tg.factory.load(data['result'], ChatMember)
+
+        return user
+
+    def get_chat_member(self, chat_id=None,
+                        user_id=None):
+        return self.tg.loop.create_task(self._get_chat_member(chat_id, user_id))
+
     def send_video(self, video, chat_id=None,
                    caption=None, parse_mode=None,
                    disable_notification=None, reply_to_message_id=None,
@@ -658,6 +706,19 @@ class Message:
                            remove_none_values=True)
         )
 
+    async def _get_chat_admins(self, chat_id=None):
+        if chat_id is None:
+            chat_id = self.data.chat.id
+
+        try:
+            return self.tg.factory.load((await self.tg.method("getChatAdministrators", {"chat_id": chat_id}))['result'],
+                                        List[ChatMember])
+        except KeyError:
+            return []
+
+    def get_chat_admins(self, chat_id=None):
+        return self.tg.loop.create_task(self._get_chat_admins(chat_id))
+
     def unpin_chat_message(self, chat_id=None):
         if chat_id is None:
             chat_id = self.data.chat.id
@@ -680,7 +741,7 @@ class Message:
 
     def restrict(self, permissions, chat_id=None,
                  user_id=None, until_date=0):
-        serialized = self.tg.factory.dump(permissions)
+        serialized = dumps(self.tg.factory.dump(permissions))
 
         if chat_id is None:
             chat_id = self.data.chat.id
